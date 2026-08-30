@@ -52,7 +52,7 @@ Keep this setting `false` for any public build and use HTTPS for the API.
 
 ## Android APK
 
-The repository includes a GitHub Actions workflow that type-checks, lints, runs Expo Doctor, prebuilds Android and produces a release APK artifact. It can run on pull requests, feature-branch pushes, or manually with `workflow_dispatch`. No EAS account is required for that CI path.
+The repository includes a GitHub Actions workflow that type-checks, runs the inherited repo-wide lint baseline as advisory, runs Expo Doctor, prebuilds Android and produces a release APK artifact. It can run on pull requests, feature-branch pushes, or manually with `workflow_dispatch`. No EAS account is required for that CI path.
 
 GitHub may leave Actions disabled on a newly created fork until the repository owner explicitly enables workflows in the **Actions** tab. If no workflow run appears after a push, enable Actions first and then run the workflow manually or push another commit.
 
@@ -67,9 +67,9 @@ cd android
 
 ## Self-host the backend
 
-Alovoa's backend is a separate AGPL-3.0 project. See [`docs/SELF_HOSTING.md`](docs/SELF_HOSTING.md) and [`scripts/bootstrap-backend.sh`](scripts/bootstrap-backend.sh).
+Alovoa's backend is a separate AGPL-3.0 project. See [`docs/SELF_HOSTING.md`](docs/SELF_HOSTING.md), [`docs/BACKEND_18_PLUS.md`](docs/BACKEND_18_PLUS.md) and [`scripts/bootstrap-backend.sh`](scripts/bootstrap-backend.sh).
 
-The upstream backend requires Java 17, MariaDB, email configuration and encryption/application settings. Docker Compose is also supported upstream.
+The upstream backend requires Java 17, MariaDB, email configuration and encryption/application settings. Docker Compose is also supported upstream. Its existing `RegisterService.registerBase(...)` already enforces the configurable `app.age.min`; OpenCircle requires the effective value to be `18` rather than the upstream default `16` inspected for this fork.
 
 ## Video rooms
 
@@ -105,6 +105,7 @@ See [`.env.example`](.env.example). The most important values are:
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — client boundaries and ownership.
 - [`docs/PRIVACY_BASELINE.md`](docs/PRIVACY_BASELINE.md) — minimum privacy/safety controls.
 - [`docs/RELEASE_GATE.md`](docs/RELEASE_GATE.md) — mandatory NO-GO/GO checklist before a public build is treated as releasable.
+- [`docs/BACKEND_18_PLUS.md`](docs/BACKEND_18_PLUS.md) — exact server-side 18+ configuration and direct-request verification.
 - [`docs/BACKEND_EXTENSIONS.md`](docs/BACKEND_EXTENSIONS.md) — smallest server-side contracts for Stories, media DMs and later native call signalling.
 
 ## Remaining backend-dependent enhancements
