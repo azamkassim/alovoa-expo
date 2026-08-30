@@ -41,6 +41,7 @@ type Props = StackScreenProps<RootStackParamList, "Login">;
 const Login = ({ navigation: _navigation }: Props) => {
   const { colors } = useTheme();
   const { width, height } = useWindowDimensions();
+  const upstreamBlocked = IS_ALOVOA_PRODUCTION;
 
   const [email, setEmail] = React.useState("");
   const [emailValid, setEmailValid] = React.useState(false);
@@ -98,6 +99,11 @@ const Login = ({ navigation: _navigation }: Props) => {
   }
 
   async function loginOauth(url: string) {
+    if (upstreamBlocked) {
+      Global.ShowToast("Configure your own backend before signing in.");
+      return;
+    }
+
     const listener = Linking.addEventListener("url", handleRedirect);
     try {
       const result = await WebBrowser.openAuthSessionAsync(
@@ -120,7 +126,7 @@ const Login = ({ navigation: _navigation }: Props) => {
   }
 
   async function loginEmail() {
-    if (!captchaId || !captchaText) return;
+    if (upstreamBlocked || !captchaId || !captchaText) return;
 
     setCaptchaVisible(false);
     const redirectUrl = APP_URL || (await Linking.getInitialURL());
@@ -164,6 +170,10 @@ const Login = ({ navigation: _navigation }: Props) => {
   }
 
   async function requestCaptcha() {
+    if (upstreamBlocked) {
+      Global.ShowToast("Configure your own backend before signing in.");
+      return;
+    }
     if (!emailValid || !password) return;
 
     Keyboard.dismiss();
@@ -217,7 +227,7 @@ const Login = ({ navigation: _navigation }: Props) => {
               Server: {API_BASE_URL}
             </Text>
 
-            {IS_ALOVOA_PRODUCTION && (
+            {upstreamBlocked && (
               <Text
                 style={{
                   marginBottom: 16,
@@ -227,8 +237,8 @@ const Login = ({ navigation: _navigation }: Props) => {
                   color: colors.onErrorContainer,
                 }}
               >
-                This build is connected to Alovoa production. Configure EXPO_PUBLIC_API_URL to
-                your own backend before distributing it.
+                This independent build is pointed at an upstream Alovoa service. Account actions
+                are disabled. Set EXPO_PUBLIC_API_URL to a backend you control.
               </Text>
             )}
 
@@ -236,6 +246,7 @@ const Login = ({ navigation: _navigation }: Props) => {
               style={{ backgroundColor: colors.background }}
               label={i18n.t("email")}
               value={email}
+              disabled={upstreamBlocked}
               onChangeText={(value) => {
                 setEmail(value);
                 setEmailValid(Global.isEmailValid(value));
@@ -247,6 +258,7 @@ const Login = ({ navigation: _navigation }: Props) => {
               style={{ backgroundColor: colors.background }}
               label={i18n.t("password")}
               value={password}
+              disabled={upstreamBlocked}
               onChangeText={setPassword}
               onSubmitEditing={requestCaptcha}
               autoCapitalize="none"
@@ -257,7 +269,7 @@ const Login = ({ navigation: _navigation }: Props) => {
               icon="email"
               mode="contained"
               style={{ marginTop: 18 }}
-              disabled={!emailValid || !password}
+              disabled={upstreamBlocked || !emailValid || !password}
               onPress={requestCaptcha}
             >
               {i18n.t("auth.email")}
@@ -269,6 +281,7 @@ const Login = ({ navigation: _navigation }: Props) => {
               icon="google"
               mode="contained"
               style={style.oauthGoogle}
+              disabled={upstreamBlocked}
               onPress={() => loginOauth(URL.AUTH_GOOGLE)}
             >
               {i18n.t("auth.google")}
@@ -277,6 +290,7 @@ const Login = ({ navigation: _navigation }: Props) => {
               icon="facebook"
               mode="contained"
               style={[style.oauthFacebook, { marginTop: 8 }]}
+              disabled={upstreamBlocked}
               onPress={() => loginOauth(URL.AUTH_FACEBOOK)}
             >
               {i18n.t("auth.facebook")}
@@ -286,6 +300,7 @@ const Login = ({ navigation: _navigation }: Props) => {
 
             <Button
               mode="outlined"
+              disabled={upstreamBlocked}
               onPress={() => Global.navigate("Register", false, { registerEmail: true })}
             >
               {i18n.t("register-email")}
@@ -293,9 +308,11 @@ const Login = ({ navigation: _navigation }: Props) => {
           </View>
 
           <View style={{ marginTop: 40 }}>
-            <Text style={style.link} onPress={() => Global.navigate("PasswordReset", false, {})}>
-              {i18n.t("password-forget")}
-            </Text>
+            {!upstreamBlocked && (
+              <Text style={style.link} onPress={() => Global.navigate("PasswordReset", false, {})}>
+                {i18n.t("password-forget")}
+              </Text>
+            )}
             <Text style={style.link} onPress={() => WebBrowser.openBrowserAsync(URL.PRIVACY)}>
               {i18n.t("privacy-policy")}
             </Text>
