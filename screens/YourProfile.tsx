@@ -7,7 +7,7 @@ import {
   Linking,
   Pressable
 } from "react-native";
-import { Text, Button, Card, ActivityIndicator, IconButton, Badge } from "react-native-paper";
+import { Text, Button, ActivityIndicator, IconButton, Badge } from "react-native-paper";
 import styles, { STATUS_BAR_HEIGHT } from "../assets/styles";
 import { YourProfileResource, UserDto, RootStackParamList } from "../myTypes";
 import * as I18N from "../i18n";
@@ -21,7 +21,7 @@ import * as Clipboard from 'expo-clipboard';
 import Alert from "../components/Alert";
 import { BottomTabScreenProps } from "@react-navigation/bottom-tabs";
 
-const userdataFileName = "userdata-alovoa.json"
+const userdataFileName = "opencircle-userdata.json"
 const MIME_JSON = "application/json";
 
 const i18n = I18N.getI18n()
@@ -93,8 +93,8 @@ const YourProfile = ({ route, navigation }: Props) => {
   };
 
   async function logout() {
-    Global.Fetch(URL.AUTH_LOGOUT);
-    Global.SetStorage(Global.STORAGE_PAGE, Global.INDEX_LOGIN);
+    await Global.Fetch(URL.AUTH_LOGOUT);
+    await Global.SetStorage(Global.STORAGE_PAGE, Global.INDEX_LOGIN);
     Global.navigate("Login");
   }
 
@@ -112,7 +112,7 @@ const YourProfile = ({ route, navigation }: Props) => {
     } else if (Platform.OS === 'ios') {
       const response = await Global.Fetch(Global.format(URL.USER_USERDATA, uuid));
       const userData = JSON.stringify(response.data);
-      let fileName = FileSystem.documentDirectory + '/alovoa.json';
+      let fileName = FileSystem.documentDirectory + '/opencircle-userdata.json';
       await FileSystem.writeAsStringAsync(fileName, userData, { encoding: FileSystem.EncodingType.UTF8 });
       Global.ShowToast(i18n.t('profile.download-userdata-success'));
       if (await Sharing.isAvailableAsync()) {
@@ -151,11 +151,7 @@ const YourProfile = ({ route, navigation }: Props) => {
 
         <View style={[styles.containerProfileItem, { marginTop: 12, minHeight: height }]}>
           <Text style={[styles.name]}>{name + ", " + age}</Text>
-          <View style={{ marginBottom: 48, marginTop: 12 }}>
-            <Card mode="contained" style={{ padding: 12 }}>
-              <Text style={{ textAlign: 'center' }}>{i18n.t('profile.donated') + ": " + String(user ? user.totalDonations : 0) + ' €'}</Text>
-            </Card>
-          </View>
+          <View style={{ marginBottom: 28 }} />
 
           <Badge size={12} visible={imcompletePhotos} style={styles.badge} />
           <Button icon="chevron-right" mode="elevated" contentStyle={{ flexDirection: 'row-reverse', justifyContent: 'space-between' }}
