@@ -11,6 +11,17 @@ const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8080";
 const VIDEO_BASE_URL = process.env.EXPO_PUBLIC_VIDEO_BASE_URL || "https://meet.jit.si";
 const APP_LINK_DOMAIN = process.env.APP_LINK_DOMAIN;
 
+const updates = EAS_PROJECT_ID
+  ? {
+      enabled: true,
+      checkAutomatically: "ON_ERROR_RECOVERY",
+      url: `https://u.expo.dev/${EAS_PROJECT_ID}`,
+    }
+  : {
+      enabled: false,
+      checkAutomatically: "ON_ERROR_RECOVERY",
+    };
+
 module.exports = {
   expo: {
     name: APP_NAME,
@@ -45,13 +56,7 @@ module.exports = {
         backgroundColor: "#0B1020",
       },
     },
-    updates: {
-      enabled: false,
-      checkAutomatically: "ON_ERROR_RECOVERY",
-      url: EAS_PROJECT_ID
-        ? `https://u.expo.dev/${EAS_PROJECT_ID}`
-        : "https://github.com/azamkassim/alovoa-expo/releases/latest",
-    },
+    updates,
     assetBundlePatterns: ["**/*"],
     ios: {
       supportsTablet: true,
@@ -65,10 +70,6 @@ module.exports = {
           "This app uses your location to list people in close proximity when you choose nearby discovery.",
         NSDocumentsFolderUsageDescription:
           "This app uses the Documents folder when you request an export of your user data.",
-        NSMicrophoneUsageDescription:
-          "This app uses the microphone when you choose to join a voice or video room.",
-        NSCameraUsageDescription:
-          "This app uses the camera when you choose to join a video room.",
       },
       buildNumber: "1",
     },
@@ -91,8 +92,6 @@ module.exports = {
       permissions: [
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION",
-        "android.permission.RECORD_AUDIO",
-        "android.permission.CAMERA",
       ],
       lintOptions: {
         checkReleaseBuilds: false,
