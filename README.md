@@ -41,9 +41,19 @@ EXPO_PUBLIC_API_URL=http://192.168.1.50:8080
 
 Android emulator users can normally use `http://10.0.2.2:8080` for a backend running on the host machine.
 
+Android blocks clear-text HTTP in the generated app by default. For **local development only**, if your backend does not yet use TLS, add:
+
+```text
+EXPO_PUBLIC_ALLOW_CLEARTEXT=true
+```
+
+Keep this setting `false` for any public build and use HTTPS for the API.
+
 ## Android APK
 
-The repository includes a GitHub Actions workflow that prebuilds the Android project and produces a release APK artifact on pull requests. No EAS account is required for that CI path.
+The repository includes a GitHub Actions workflow that type-checks, lints, runs Expo Doctor, prebuilds Android and produces a release APK artifact. It can run on pull requests, feature-branch pushes, or manually with `workflow_dispatch`. No EAS account is required for that CI path.
+
+GitHub may leave Actions disabled on a newly created fork until the repository owner explicitly enables workflows in the **Actions** tab. If no workflow run appears after a push, enable Actions first and then run the workflow manually or push another commit.
 
 Local native build:
 
@@ -84,6 +94,7 @@ See [`.env.example`](.env.example). The most important values are:
 - `EXPO_PUBLIC_APP_SLUG`
 - `EXPO_PUBLIC_APP_SCHEME`
 - `EXPO_PUBLIC_API_URL`
+- `EXPO_PUBLIC_ALLOW_CLEARTEXT`
 - `EXPO_PUBLIC_VIDEO_BASE_URL`
 - `ANDROID_PACKAGE`
 - `IOS_BUNDLE_IDENTIFIER`
@@ -99,5 +110,7 @@ The current Alovoa API supports matching, profiles and text chat. True cross-use
 ## Licensing
 
 This fork keeps the original repository's license files. The mobile code is primarily MPL-2.0, with older portions under the license documented in `LICENSE_old`. Review file-level licensing before redistribution.
+
+The upstream empty-state and onboarding illustrations in this client include their own asset license files. The primary OpenCircle icon, adaptive icon, splash, favicon and store feature graphic in this branch are independent replacement assets.
 
 The Alovoa backend is a separate AGPL-3.0 project. Its upstream README also notes separate restrictions for some image assets; do not assume all upstream visual branding can be reused in a newly branded public product.

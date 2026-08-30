@@ -1,17 +1,17 @@
 const { createRunOncePlugin, withAndroidManifest } = require('@expo/config-plugins');
 
-const setClearTextTrafficFalse = config => {
+const setClearTextTrafficPolicy = config => {
     return withAndroidManifest(config, config => {
         const androidManifest = config.modResults.manifest;
         const mainApplication = androidManifest.application[0];
-        mainApplication.$['android:usesCleartextTraffic'] = 'false';
+        const allowCleartext = process.env.EXPO_PUBLIC_ALLOW_CLEARTEXT === 'true';
+        mainApplication.$['android:usesCleartextTraffic'] = allowCleartext ? 'true' : 'false';
         return config;
     });
 };
 
-
 module.exports = createRunOncePlugin(
-    setClearTextTrafficFalse,
+    setClearTextTrafficPolicy,
     'setClearTextTrafficFalse',
-    '1.0.0'
+    '1.1.0'
 );
