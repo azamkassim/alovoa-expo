@@ -1,30 +1,47 @@
 import React from "react";
-import { useTheme, Text, Button, Dialog, TextInput, IconButton, Divider, Portal } from "react-native-paper";
-import { View, Platform, StyleSheet, Image, useWindowDimensions, Keyboard, KeyboardAvoidingView } from "react-native";
+import {
+  Button,
+  Divider,
+  IconButton,
+  Text,
+  TextInput,
+  useTheme,
+} from "react-native-paper";
+import {
+  Image,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  StyleSheet,
+  View,
+  useWindowDimensions,
+} from "react-native";
 import { Buffer } from "buffer";
-import * as WebBrowser from 'expo-web-browser';
-import * as Linking from 'expo-linking';
+import * as WebBrowser from "expo-web-browser";
+import * as Linking from "expo-linking";
 import * as Global from "../Global";
 import * as URL from "../URL";
 import * as I18N from "../i18n";
 import { Captcha, RootStackParamList } from "../myTypes";
 import VerticalView from "../components/VerticalView";
 import { STATUS_BAR_HEIGHT, WIDESCREEN_HORIZONTAL_MAX } from "../assets/styles";
-import splash from '../assets/splash.png';
-import { BottomTabScreenProps } from "@react-navigation/bottom-tabs";
+import splash from "../assets/splash.png";
 import Modal from "react-native-modal";
+import { StackScreenProps } from "@react-navigation/stack";
+import { API_BASE_URL, APP_NAME, IS_ALOVOA_PRODUCTION } from "../config/runtime";
 
-const i18n = I18N.getI18n()
+const i18n = I18N.getI18n();
 const APP_URL = Linking.createURL("");
 const IMAGE_HEADER = "data:image/webp;base64,";
 
 WebBrowser.maybeCompleteAuthSession();
 
-type Props = BottomTabScreenProps<RootStackParamList, 'Login'>
-const Login = ({ route: _r, navigation: _n }: Props) => {
+type Props = StackScreenProps<RootStackParamList, "Login">;
 
+const Login = ({ navigation: _navigation }: Props) => {
   const { colors } = useTheme();
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
+  const upstreamBlocked = IS_ALOVOA_PRODUCTION;
 
   const [email, setEmail] = React.useState("");
   const [emailValid, setEmailValid] = React.useState(false);
@@ -33,33 +50,35 @@ const Login = ({ route: _r, navigation: _n }: Props) => {
   const [captchaImage, setCaptchaImage] = React.useState("");
   const [captchaText, setCaptchaText] = React.useState("");
   const [loading, setLoading] = React.useState(true);
+  const [captchaVisible, setCaptchaVisible] = React.useState(false);
 
-  //vars for dialog
-  const [visible, setVisible] = React.useState(false);
-  const showDialog = () => { setVisible(true); Keyboard.dismiss() };
-  const hideDialog = () => setVisible(false);
-  const { height } = useWindowDimensions();
   function calcMarginModal() {
     return width < WIDESCREEN_HORIZONTAL_MAX + 12 ? 12 : width / 5 + 12;
   }
-  const containerStyle = { backgroundColor: colors.background, padding: 24, marginHorizontal: calcMarginModal(), borderRadius: 8 }; +
 
-    React.useEffect(() => {
-      load();
-    }, []);
+  const containerStyle = {
+    backgroundColor: colors.background,
+    padding: 24,
+    marginHorizontal: calcMarginModal(),
+    borderRadius: 8,
+  };
 
-  const _handleRedirect = async (event: { url: string; }) => {
+  React.useEffect(() => {
+    load();
+  }, []);
 
-    if (Platform.OS === 'ios') {
+  const handleRedirect = async (event: { url: string }) => {
+    if (Platform.OS === "ios") {
       WebBrowser.dismissBrowser();
     }
 
-    let data = Linking.parse(event.url);
+    const data = Linking.parse(event.url);
     if (data.queryParams != null) {
-      let firstName: string = String(data.queryParams["firstName"]);
-      let page: string = String(data.queryParams["page"]);
-      let sessionId: string = String(data.queryParams["jsessionid"]);
-      let rememberMe = String(data.queryParams["remember-me"]);
+      const firstName = String(data.queryParams["firstName"]);
+      const page = String(data.queryParams["page"]);
+      const sessionId = String(data.queryParams["jsessionid"]);
+      const rememberMe = String(data.queryParams["remember-me"]);
+
       await Global.Fetch(Global.format(URL.AUTH_COOKIE, rememberMe, sessionId));
       await Global.SetStorage(Global.STORAGE_FIRSTNAME, firstName);
       await Global.SetStorage(Global.STORAGE_PAGE, page);
@@ -68,232 +87,279 @@ const Login = ({ route: _r, navigation: _n }: Props) => {
     }
   };
 
-  const load = async () => {
-    await Global.GetStorage(Global.STORAGE_PAGE).then((value) => {
+  async function load() {
+    try {
+      const value = await Global.GetStorage(Global.STORAGE_PAGE);
       if (value && value !== Global.INDEX_REGISTER) {
         Global.loadPage(value);
       }
-    });
-    setTimeout(() => setLoading(false), 200);
-  };
-
-  const loginGoogle = async () => {
-    let e = Linking.addEventListener('url', _handleRedirect);
-    let res = await WebBrowser.openAuthSessionAsync(URL.AUTH_GOOGLE + "/" + Buffer.from(APP_URL).toString('base64'));
-    e.remove();
-
-    //_handleRedirect does not work on iOS and web, get url directly from WebBrowser.openAuthSessionAsync result instead
-    if ((Platform.OS === 'ios' || Platform.OS === 'web') && res.type === "success" && res.url) {
-      _handleRedirect({ url: res.url });
+    } finally {
+      setTimeout(() => setLoading(false), 200);
     }
-  };
+  }
 
-  const loginFacebook = async () => {
-    let e = Linking.addEventListener('url', _handleRedirect);
-    let res = await WebBrowser.openAuthSessionAsync(URL.AUTH_FACEBOOK + "/" + Buffer.from(APP_URL).toString('base64'));
-    e.remove();
-
-    //_handleRedirect does not work on iOS and web, get url directly from WebBrowser.openAuthSessionAsync result instead
-    if ((Platform.OS === 'ios' || Platform.OS === 'web') && res.type === "success" && res.url) {
-      _handleRedirect({ url: res.url });
+  async function loginOauth(url: string) {
+    if (upstreamBlocked) {
+      Global.ShowToast("Configure your own backend before signing in.");
+      return;
     }
-  };
 
-  const loginEmail = async () => {
-    if (captchaId && captchaText) {
-      hideDialog();
-      let redirectUrl = APP_URL ? APP_URL : await Linking.getInitialURL();
-      if (!redirectUrl) {
-        Global.ShowToast(i18n.t('error.generic'));
-        return;
+    const listener = Linking.addEventListener("url", handleRedirect);
+    try {
+      const result = await WebBrowser.openAuthSessionAsync(
+        url + "/" + Buffer.from(APP_URL).toString("base64")
+      );
+
+      if (
+        (Platform.OS === "ios" || Platform.OS === "web") &&
+        result.type === "success" &&
+        result.url
+      ) {
+        await handleRedirect({ url: result.url });
       }
-      let url = URL.AUTH_LOGIN + "?username=" + encodeURIComponent(email) +
-        "&password=" + encodeURIComponent(password) +
-        "&remember-me=" +
-        "&redirect-url=" + Buffer.from(redirectUrl).toString('base64') +
-        "&captchaId=" + captchaId +
-        "&captchaText=" + captchaText;
-      try {
-        let res = await Global.Fetch(url, 'post', {}, "application/x-www-form-urlencoded");
-        let redirectHeader = res.headers['redirect-url'];
-        if (!redirectHeader) {
-          redirectHeader = res.data;
-        }
-        if (res.request?.responseURL && res.request?.responseURL !== URL.AUTH_LOGIN_ERROR && redirectHeader) {
-          _handleRedirect({ url: redirectHeader });
-        } else {
-          Global.ShowToast(i18n.t('error.generic'));
-        }
-      } catch (e) {
-        console.error(e);
-        Global.ShowToast(i18n.t('error.generic'));
-      }
+    } catch (error) {
+      console.error(error);
+      Global.ShowToast("Sign in could not be completed.");
+    } finally {
+      listener.remove();
     }
-  };
+  }
 
-  async function emailSignInPress() {
-    if (emailValid && password) {
-      setCaptchaText("");
-      let res = await Global.Fetch(URL.CATPCHA_GENERATE);
-      let captcha: Captcha = res.data;
+  async function loginEmail() {
+    if (upstreamBlocked || !captchaId || !captchaText) return;
+
+    setCaptchaVisible(false);
+    const redirectUrl = APP_URL || (await Linking.getInitialURL());
+    if (!redirectUrl) {
+      Global.ShowToast(i18n.t("error.generic"));
+      return;
+    }
+
+    const url =
+      URL.AUTH_LOGIN +
+      "?username=" +
+      encodeURIComponent(email) +
+      "&password=" +
+      encodeURIComponent(password) +
+      "&remember-me=" +
+      "&redirect-url=" +
+      Buffer.from(redirectUrl).toString("base64") +
+      "&captchaId=" +
+      captchaId +
+      "&captchaText=" +
+      encodeURIComponent(captchaText);
+
+    try {
+      const response = await Global.Fetch(url, "post", {}, "application/x-www-form-urlencoded");
+      let redirectHeader = response.headers["redirect-url"];
+      if (!redirectHeader) redirectHeader = response.data;
+
+      if (
+        response.request?.responseURL &&
+        response.request?.responseURL !== URL.AUTH_LOGIN_ERROR &&
+        redirectHeader
+      ) {
+        await handleRedirect({ url: redirectHeader });
+      } else {
+        Global.ShowToast(i18n.t("error.generic"));
+      }
+    } catch (error) {
+      console.error(error);
+      Global.ShowToast(i18n.t("error.generic"));
+    }
+  }
+
+  async function requestCaptcha() {
+    if (upstreamBlocked) {
+      Global.ShowToast("Configure your own backend before signing in.");
+      return;
+    }
+    if (!emailValid || !password) return;
+
+    Keyboard.dismiss();
+    setCaptchaText("");
+    try {
+      const response = await Global.Fetch(URL.CATPCHA_GENERATE);
+      const captcha: Captcha = response.data;
       setCaptchaId(captcha.id);
       setCaptchaImage(IMAGE_HEADER + captcha.image);
-      showDialog();
+      setCaptchaVisible(true);
+    } catch (error) {
+      console.error(error);
+      Global.ShowToast("Could not reach the configured server.");
     }
   }
 
   const style = StyleSheet.create({
     link: {
       color: colors.primary,
-      flex: 1,
-      marginBottom: 4
+      marginBottom: 8,
     },
-    button: {
-      alignItems: 'center',
-      justifyContent: 'center',
-      paddingVertical: 12,
-      paddingHorizontal: 32,
-      borderRadius: 4,
-      elevation: 3,
-      backgroundColor: 'blue',
-      margin: 4,
-      flexDirection: 'row'
+    oauthGoogle: {
+      backgroundColor: "#4285f4",
     },
-    buttonGoogle: {
-      backgroundColor: '#4285f4',
+    oauthFacebook: {
+      backgroundColor: "#4267b2",
     },
-    buttonFacebook: {
-      backgroundColor: '#4267b2',
-    },
-    buttonText: {
-      color: 'white'
-    },
-    icon: {
-      marginRight: 8
-    }
   });
 
   return (
     <VerticalView style={{ paddingTop: STATUS_BAR_HEIGHT, display: "flex" }}>
-      {!loading &&
-        <View >
+      {!loading && (
+        <View>
           <View style={{ minHeight: height }}>
-            <Image resizeMode='contain' style={{ height: 200, width: '100%', marginTop: 24 }} source={splash} />
+            <Image
+              resizeMode="contain"
+              style={{ height: 180, width: "100%", marginTop: 24 }}
+              source={splash}
+            />
 
-            <Text style={{ textAlign: 'center', marginBottom: 48, marginTop: 24, fontSize: 32, fontWeight: '500' }}>Alovoa</Text>
+            <Text
+              variant="headlineLarge"
+              style={{ textAlign: "center", marginTop: 12, fontWeight: "600" }}
+            >
+              {APP_NAME}
+            </Text>
+            <Text
+              variant="bodySmall"
+              style={{ textAlign: "center", marginBottom: 28, marginTop: 6, opacity: 0.6 }}
+            >
+              Server: {API_BASE_URL}
+            </Text>
+
+            {upstreamBlocked && (
+              <Text
+                style={{
+                  marginBottom: 16,
+                  padding: 10,
+                  borderRadius: 8,
+                  backgroundColor: colors.errorContainer,
+                  color: colors.onErrorContainer,
+                }}
+              >
+                This independent build is pointed at an upstream Alovoa service. Account actions
+                are disabled. Set EXPO_PUBLIC_API_URL to a backend you control.
+              </Text>
+            )}
 
             <TextInput
               style={{ backgroundColor: colors.background }}
-              label={i18n.t('email')}
+              label={i18n.t("email")}
               value={email}
-              onChangeText={text => {
-                setEmail(text);
-                setEmailValid(Global.isEmailValid(text));
+              disabled={upstreamBlocked}
+              onChangeText={(value) => {
+                setEmail(value);
+                setEmailValid(Global.isEmailValid(value));
               }}
               keyboardType="email-address"
               autoCapitalize="none"
             />
             <TextInput
               style={{ backgroundColor: colors.background }}
-              label={i18n.t('password')}
+              label={i18n.t("password")}
               value={password}
-              onChangeText={text => setPassword(text)}
-              onSubmitEditing={emailSignInPress}
+              disabled={upstreamBlocked}
+              onChangeText={setPassword}
+              onSubmitEditing={requestCaptcha}
               autoCapitalize="none"
               secureTextEntry={true}
             />
 
-            <Button icon="email" mode="contained" style={{ marginTop: 18 }} onPress={emailSignInPress}>
-              <Text style={style.buttonText}>{i18n.t('auth.email')}</Text>
+            <Button
+              icon="email"
+              mode="contained"
+              style={{ marginTop: 18 }}
+              disabled={upstreamBlocked || !emailValid || !password}
+              onPress={requestCaptcha}
+            >
+              {i18n.t("auth.email")}
             </Button>
 
-            <View style={{ paddingBottom: 38 }}></View>
+            <Divider style={{ marginVertical: height >= 800 ? 36 : 22 }} />
 
-            <Button icon="google" mode="contained" style={[style.buttonGoogle]}
-              onPress={() => {
-                loginGoogle();
-              }}
-            ><Text style={style.buttonText}>{i18n.t('auth.google')}</Text></Button>
-            <Button icon="facebook" mode="contained" style={[style.buttonFacebook, { marginTop: 8 }]}
-              onPress={() => {
-                loginFacebook();
-              }}
-            ><Text style={style.buttonText}>{i18n.t('auth.facebook')}</Text></Button>
+            <Button
+              icon="google"
+              mode="contained"
+              style={style.oauthGoogle}
+              disabled={upstreamBlocked}
+              onPress={() => loginOauth(URL.AUTH_GOOGLE)}
+            >
+              {i18n.t("auth.google")}
+            </Button>
+            <Button
+              icon="facebook"
+              mode="contained"
+              style={[style.oauthFacebook, { marginTop: 8 }]}
+              disabled={upstreamBlocked}
+              onPress={() => loginOauth(URL.AUTH_FACEBOOK)}
+            >
+              {i18n.t("auth.facebook")}
+            </Button>
 
-            <Divider style={{ margin: height >= 800 ? 48 : 18 }} />
-            <View>
-              <Button style={{ backgroundColor: "#757575" }} onPress={() => {
-                Global.navigate("Register", false, { registerEmail: true });
-              }}><Text style={style.buttonText}>{i18n.t('register-email')}</Text></Button>
-            </View>
+            <Divider style={{ marginVertical: height >= 800 ? 36 : 22 }} />
+
+            <Button
+              mode="outlined"
+              disabled={upstreamBlocked}
+              onPress={() => Global.navigate("Register", false, { registerEmail: true })}
+            >
+              {i18n.t("register-email")}
+            </Button>
           </View>
 
-          <View style={{ marginTop: 64 }}>
-            <Text style={style.link} onPress={() => {
-              Global.navigate("PasswordReset", false, {});
-            }}>{i18n.t('password-forget')}</Text>
+          <View style={{ marginTop: 40 }}>
+            {!upstreamBlocked && (
+              <Text style={style.link} onPress={() => Global.navigate("PasswordReset", false, {})}>
+                {i18n.t("password-forget")}
+              </Text>
+            )}
+            <Text style={style.link} onPress={() => WebBrowser.openBrowserAsync(URL.PRIVACY)}>
+              {i18n.t("privacy-policy")}
+            </Text>
+            <Text style={style.link} onPress={() => WebBrowser.openBrowserAsync(URL.TOS)}>
+              {i18n.t("tos")}
+            </Text>
+            <Text style={style.link} onPress={() => WebBrowser.openBrowserAsync(URL.IMPRINT)}>
+              {i18n.t("imprint")}
+            </Text>
           </View>
-
-          <View style={{ marginTop: 24 }}>
-            <Text style={style.link} onPress={() => {
-              WebBrowser.openBrowserAsync(URL.PRIVACY);
-            }}>{i18n.t('privacy-policy')}</Text>
-            <Text style={style.link} onPress={() => {
-              WebBrowser.openBrowserAsync(URL.TOS);
-            }}>{i18n.t('tos')}</Text>
-            <Text style={style.link} onPress={() => {
-              WebBrowser.openBrowserAsync(URL.IMPRINT);
-            }}>{i18n.t('imprint')}</Text>
-          </View>
-          <View style={{ paddingBottom: 38 }}></View>
+          <View style={{ paddingBottom: 38 }} />
         </View>
-      }
-
+      )}
 
       <Modal
-        isVisible={visible}
-        onBackdropPress={hideDialog}
+        isVisible={captchaVisible}
+        onBackdropPress={() => setCaptchaVisible(false)}
         avoidKeyboard={false}
-        style={{ justifyContent: 'center', margin: 0 }}>
-        <KeyboardAvoidingView behavior="padding">
+        style={{ justifyContent: "center", margin: 0 }}
+      >
+        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined}>
           <View style={containerStyle}>
-            <View>
-              <IconButton
-                style={{ alignSelf: 'flex-end' }}
-                icon="close"
-                size={20}
-                onPress={hideDialog}
-              />
-            </View>
-            <Text>{i18n.t('captcha.title')}</Text>
-            <Image resizeMode='contain' style={{ height: 100 }} source={{ uri: captchaImage }} />
+            <IconButton
+              style={{ alignSelf: "flex-end" }}
+              icon="close"
+              size={20}
+              onPress={() => setCaptchaVisible(false)}
+            />
+            <Text>{i18n.t("captcha.title")}</Text>
+            <Image resizeMode="contain" style={{ height: 100 }} source={{ uri: captchaImage }} />
             <TextInput
               mode="outlined"
               autoCorrect={false}
-              label={i18n.t('captcha.placeholder')}
+              label={i18n.t("captcha.placeholder")}
               value={captchaText}
-              onChangeText={text => setCaptchaText(text)}
+              onChangeText={setCaptchaText}
               onSubmitEditing={loginEmail}
             />
-            <View style={{ flexDirection: 'row', marginTop: 8, justifyContent: 'flex-end' }}>
-              <IconButton
-                icon="reload"
-                iconColor={colors.primary}
-                size={20}
-                onPress={() => { emailSignInPress() }}
-              />
-              <IconButton
-                icon="login-variant"
-                iconColor={colors.primary}
-                size={20}
-                onPress={() => { loginEmail() }}
-              />
+            <View style={{ flexDirection: "row", marginTop: 8, justifyContent: "flex-end" }}>
+              <IconButton icon="reload" size={20} onPress={requestCaptcha} />
+              <IconButton icon="login-variant" size={20} onPress={loginEmail} />
             </View>
           </View>
         </KeyboardAvoidingView>
       </Modal>
     </VerticalView>
-  )
+  );
 };
 
 export default Login;

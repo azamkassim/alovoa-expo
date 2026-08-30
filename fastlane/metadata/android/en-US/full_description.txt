@@ -1,11 +1,13 @@
-Native Android application for Alovoa, the open-source dating platform. 
+OpenCircle is an open-source social and matching client built from the Alovoa mobile codebase. Core discovery, swipe/match, profile and chat features are intended to be available without coin or VIP gates.
 
-Alovoa aims to be the first global open-source platform that enables people to easily find new friends and dates.
+The app is designed for an Alovoa-compatible backend operated by the deployment owner. It also provides shareable Cam2Cam video rooms through a configurable Jitsi-compatible provider.
 
-Our promises:
-• No microtransaction
-• No annoying ads
-• No selling your data
-• Strict filters, only see people you want to see
-• Completely free (as in free speech)
-• Completely free (as in free beer)
+Current MVP navigation:
+- Browse
+- Swipe
+- Social activity
+- Cam2Cam
+- DMs
+- Me/profile
+
+This project does not bypass another app's paid features. It is an independent open-source implementation foundation.

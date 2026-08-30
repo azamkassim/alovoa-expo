@@ -9,3 +9,6 @@ export { default as Onboarding } from "./Onboarding";
 export { default as YourProfile } from "./YourProfile";
 export { default as Login } from "./Login";
 export { default as PasswordReset } from "./PasswordReset";
+export { default as Browse } from "./Browse";
+export { default as Social } from "./Social";
+export { default as Cam2Cam } from "./Cam2Cam";

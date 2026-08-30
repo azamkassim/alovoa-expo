@@ -1,6 +1,6 @@
 {
-  "name": "alovoa-expo",
-  "version": "2.1.0",
+  "name": "open-circle",
+  "version": "0.1.0",
   "private": true,
   "packageManager": "yarn@1.22.22",
   "scripts": {

@@ -14,7 +14,7 @@ import FormData from "form-data";
 import { Buffer } from "buffer";
 import { cloneDeep } from 'lodash';
 
-export const FLAG_ENABLE_DONATION = true;
+export const FLAG_ENABLE_DONATION = false;
 
 export const navigationRef = createNavigationContainerRef<RootStackParamList>()
 export const INDEX_LOGIN = "0"
@@ -61,8 +61,8 @@ export const SCREEN_PROFILE_SEARCHPARAMETERS = "Profile.SearchParameters"
 export const SCREEN_PROFILE_SETTINGS = "Profile.Settings"
 export const SCREEN_PROFILE_ADVANCED_SETTINGS = "Profile.AdvancedSettings"
 
-export const DEFAULT_COLOR_PRIMARY = '#EC407A';
-export const DEFAULT_COLOR_SECONDARY = '#28C4ED';
+export const DEFAULT_COLOR_PRIMARY = '#8B5CF6';
+export const DEFAULT_COLOR_SECONDARY = '#22D3EE';
 
 export const EMPTY_STRING = "...";
 
