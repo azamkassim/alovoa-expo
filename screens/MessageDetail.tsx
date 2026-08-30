@@ -22,7 +22,7 @@ import * as Global from "../Global";
 import * as URL from "../URL";
 import * as I18N from "../i18n";
 import { StackScreenProps } from "@react-navigation/stack";
-import { createPeerRoom, openVideoRoom } from "../lib/videoCall";
+import { buildRoomUrl, createPeerRoom, openVideoRoom } from "../lib/videoCall";
 
 const i18n = I18N.getI18n();
 const SECOND_MS = 1000;
@@ -49,6 +49,19 @@ const MessageDetail = ({ route, navigation }: Props) => {
     getLinkUrl: ([number]) => `tel:${number}`,
   };
 
+  async function reloadMessages(first: boolean) {
+    try {
+      const firstVal = first ? "1" : "0";
+      const response = await Global.Fetch(
+        Global.format(URL.API_MESSAGE_UPDATE, conversation.id, firstVal)
+      );
+      const data: MessageDtoListModel = response.data;
+      if (data.list) setResults(data.list);
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
   async function startVideoCall() {
     if (videoBusy) return;
     setVideoBusy(true);
@@ -56,10 +69,20 @@ const MessageDetail = ({ route, navigation }: Props) => {
       const response = await Global.Fetch(URL.API_RESOURCE_YOUR_PROFILE);
       const data: YourProfileResource = response.data;
       const room = createPeerRoom(data.user.uuid, conversation.uuid);
+      const roomUrl = buildRoomUrl(room);
+      const invite = `Video invite: ${roomUrl}`;
+
+      await Global.Fetch(
+        Global.format(URL.MESSAGE_SEND, conversation.id),
+        "post",
+        invite,
+        "text/plain"
+      );
+      await reloadMessages(false);
       await openVideoRoom(room);
     } catch (error) {
       console.error(error);
-      Global.ShowToast("Unable to start the video call.");
+      Global.ShowToast("Unable to send or open the video invite.");
     } finally {
       setVideoBusy(false);
     }
@@ -80,7 +103,7 @@ const MessageDetail = ({ route, navigation }: Props) => {
   }, [navigation, conversation.userName, conversation.uuid, videoBusy]);
 
   React.useEffect(() => {
-    load();
+    reloadMessages(true);
     messageUpdateInterval.current = setInterval(() => {
       reloadMessages(false);
     }, POLL_MESSAGE);
@@ -94,31 +117,10 @@ const MessageDetail = ({ route, navigation }: Props) => {
   }, []);
 
   React.useEffect(() => {
-    scrollToEnd();
-  }, [results]);
-
-  function scrollToEnd() {
     setTimeout(() => {
       scrollViewRef.current?.scrollToEnd();
     }, 100);
-  }
-
-  async function load() {
-    await reloadMessages(true);
-  }
-
-  async function reloadMessages(first: boolean) {
-    try {
-      const firstVal = first ? "1" : "0";
-      const response = await Global.Fetch(
-        Global.format(URL.API_MESSAGE_UPDATE, conversation.id, firstVal)
-      );
-      const data: MessageDtoListModel = response.data;
-      if (data.list) setResults(data.list);
-    } catch (error) {
-      console.error(error);
-    }
-  }
+  }, [results]);
 
   async function sendMessage() {
     const textCopy = text.trim();
@@ -166,7 +168,7 @@ const MessageDetail = ({ route, navigation }: Props) => {
         style={{ padding: 8, flex: 1 }}
         ref={scrollViewRef}
         contentContainerStyle={{ paddingBottom: 8 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={load} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => reloadMessages(true)} />}
       >
         {results.map((item) => (
           <View
