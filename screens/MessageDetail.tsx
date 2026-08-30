@@ -15,14 +15,13 @@ import {
   MessageDtoListModel,
   MessageDto,
   RootStackParamList,
-  YourProfileResource,
 } from "../myTypes";
 import styles from "../assets/styles";
 import * as Global from "../Global";
 import * as URL from "../URL";
 import * as I18N from "../i18n";
 import { StackScreenProps } from "@react-navigation/stack";
-import { buildRoomUrl, createPeerRoom, openVideoRoom } from "../lib/videoCall";
+import { buildRoomUrl, createRandomRoom, openVideoRoom } from "../lib/videoCall";
 
 const i18n = I18N.getI18n();
 const SECOND_MS = 1000;
@@ -66,9 +65,7 @@ const MessageDetail = ({ route, navigation }: Props) => {
     if (videoBusy) return;
     setVideoBusy(true);
     try {
-      const response = await Global.Fetch(URL.API_RESOURCE_YOUR_PROFILE);
-      const data: YourProfileResource = response.data;
-      const room = createPeerRoom(data.user.uuid, conversation.uuid);
+      const room = createRandomRoom();
       const roomUrl = buildRoomUrl(room);
       const invite = `Video invite: ${roomUrl}`;
 
@@ -100,7 +97,7 @@ const MessageDetail = ({ route, navigation }: Props) => {
         />
       ),
     });
-  }, [navigation, conversation.userName, conversation.uuid, videoBusy]);
+  }, [navigation, conversation.userName, videoBusy]);
 
   React.useEffect(() => {
     reloadMessages(true);
