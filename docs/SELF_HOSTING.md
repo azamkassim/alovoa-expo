@@ -38,7 +38,29 @@ According to the upstream build instructions, prepare:
 
 Read the upstream `README.md`, `DOCUMENTATION.md`, `docker-compose.yml` and application configuration examples for the exact version you cloned.
 
-## 3. Configure secrets locally
+## 3. Enforce the 18+ backend rule
+
+Upstream Alovoa already has the canonical server-side age check in `RegisterService.registerBase(...)`, and both email and OAuth registration use it. At the upstream revision inspected for this fork, the default configuration is:
+
+```properties
+app.age.min=16
+```
+
+For OpenCircle, make the **effective** backend value:
+
+```properties
+app.age.min=18
+```
+
+or use the equivalent deployment environment value:
+
+```text
+APP_AGE_MIN=18
+```
+
+Do not add a second age-validation service; configure the existing canonical check. See [`BACKEND_18_PLUS.md`](BACKEND_18_PLUS.md) for the exact code path and direct-request acceptance tests.
+
+## 4. Configure secrets locally
 
 Do **not** commit real values to either repository. Configure database credentials, email credentials, OAuth credentials and encryption keys through your chosen secret-management method or a local ignored configuration file.
 
@@ -51,7 +73,7 @@ For a public service:
 - back up the database and test restores;
 - configure mail reputation and abuse limits.
 
-## 4. Start the server
+## 5. Start the server
 
 The upstream project documents both Maven and Docker Compose workflows. A typical development workflow is either:
 
@@ -69,7 +91,7 @@ docker-compose logs -f
 
 Use the commands supported by the exact upstream revision you cloned.
 
-## 5. Point the mobile client at it
+## 6. Point the mobile client at it
 
 Create `.env` in this frontend repository:
 
@@ -92,13 +114,13 @@ EXPO_PUBLIC_API_URL=https://api.example.com
 
 Then rebuild/restart Expo so the value is included in `app.config.js` runtime extras.
 
-## 6. OAuth and deep links
+## 7. OAuth and deep links
 
 This fork uses the default app scheme `opencircle://`. If Google or Facebook sign-in is enabled, configure the backend and provider consoles for your own package/bundle identifiers, domain and redirect flow.
 
 Do not assume OAuth settings belonging to `alovoa.com` will work for a newly branded deployment.
 
-## 7. Video service
+## 8. Video service
 
 Video rooms are independent from the Alovoa API in the MVP. The default is `https://meet.jit.si`.
 
@@ -110,7 +132,7 @@ EXPO_PUBLIC_VIDEO_BASE_URL=https://meet.example.com
 
 Self-hosted Jitsi is recommended when you need control over authentication, logging, retention and moderation policy.
 
-## 8. Backend features still needed for the broader social roadmap
+## 9. Backend features still needed for the broader social roadmap
 
 The current compatible server covers the matching/profile/text-chat MVP. Add versioned backend endpoints before shipping:
 
