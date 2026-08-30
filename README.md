@@ -10,9 +10,10 @@ This repository does **not** bypass another app's subscription system. It is an 
 - **Swipe** — the existing Alovoa swipe/match flow.
 - **Social** — activity feed for likes/match notifications from the backend.
 - **Cam2Cam** — shareable video rooms using a configurable Jitsi-compatible URL.
-- **DMs** — existing matched-user chat plus a deterministic video-call button for each conversation.
+- **DMs** — existing matched-user chat plus a per-call random video-room invite sent through the conversation before the room opens.
 - **Me** — profile, photos, prompts, search preferences, verification, block/report and account controls inherited from Alovoa.
 - **No premium gate** — the client contains no coin/VIP requirement around these core features.
+- **18+ client floor** — registration rejects dates of birth below 18; the owned backend must enforce the same rule independently before public release.
 
 ## Important backend rule
 
@@ -22,7 +23,7 @@ The client no longer defaults to `https://alovoa.com`. It defaults to:
 http://localhost:8080
 ```
 
-Set `EXPO_PUBLIC_API_URL` to the Alovoa-compatible server that you operate. Do not distribute a rebranded build pointed at another project's production service.
+Set `EXPO_PUBLIC_API_URL` to the Alovoa-compatible server that you operate. Do not distribute a rebranded build pointed at another project's production service. The login screen also disables account actions when the configured API host is an upstream `alovoa.com` service.
 
 ## Quick start
 
@@ -84,7 +85,7 @@ Override it with:
 EXPO_PUBLIC_VIDEO_BASE_URL=https://meet.example.com
 ```
 
-For production privacy/control, operate your own compatible Jitsi deployment and review its logging, retention and moderation settings.
+A new random room code is generated for each DM video invite. A room code is still **not a password**. For production privacy/control, operate your own compatible Jitsi deployment and review its authentication, logging, retention and moderation settings.
 
 ## Runtime configuration
 
@@ -99,9 +100,12 @@ See [`.env.example`](.env.example). The most important values are:
 - `ANDROID_PACKAGE`
 - `IOS_BUNDLE_IDENTIFIER`
 
-## Architecture
+## Architecture and release controls
 
-See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for boundaries and [`docs/PRIVACY_BASELINE.md`](docs/PRIVACY_BASELINE.md) for the minimum privacy/safety controls expected before public release.
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — client boundaries and ownership.
+- [`docs/PRIVACY_BASELINE.md`](docs/PRIVACY_BASELINE.md) — minimum privacy/safety controls.
+- [`docs/RELEASE_GATE.md`](docs/RELEASE_GATE.md) — mandatory NO-GO/GO checklist before a public build is treated as releasable.
+- [`docs/BACKEND_EXTENSIONS.md`](docs/BACKEND_EXTENSIONS.md) — smallest server-side contracts for Stories, media DMs and later native call signalling.
 
 ## Remaining backend-dependent enhancements
 
