@@ -24,7 +24,19 @@ By default the script clones the upstream server into `../opencircle-backend`. Y
 ./scripts/bootstrap-backend.sh ~/projects/opencircle-backend
 ```
 
+The bootstrap now runs `scripts/harden-backend.sh` automatically and changes the cloned backend's effective source baseline from the inspected upstream `app.age.min=16` to:
+
+```properties
+app.age.min=18
+```
+
 The script intentionally does not copy secrets or fabricate production configuration.
+
+If you already have your own backend checkout, apply the same non-secret baseline explicitly:
+
+```bash
+./scripts/harden-backend.sh /path/to/your/backend
+```
 
 ## 2. Backend prerequisites
 
@@ -46,13 +58,13 @@ Upstream Alovoa already has the canonical server-side age check in `RegisterServ
 app.age.min=16
 ```
 
-For OpenCircle, make the **effective** backend value:
+OpenCircle requires the **effective** backend value:
 
 ```properties
 app.age.min=18
 ```
 
-or use the equivalent deployment environment value:
+The bootstrap/hardening scripts set that source value for a checkout created through this repository. If deployment configuration overrides the file, ensure the runtime value remains 18, for example with the equivalent Spring Boot environment value:
 
 ```text
 APP_AGE_MIN=18
