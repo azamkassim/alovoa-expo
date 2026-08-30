@@ -44,15 +44,16 @@ const Cam2Cam = () => {
       <View style={{ paddingTop: STATUS_BAR_HEIGHT + 8, paddingBottom: 16 }}>
         <Text variant="headlineSmall">Cam2Cam</Text>
         <Text variant="bodySmall" style={{ opacity: 0.65 }}>
-          Free video rooms without a coin or VIP gate
+          Video rooms without a coin or VIP gate
         </Text>
       </View>
 
       <Card>
         <Card.Content>
-          <Text variant="titleMedium">Private room code</Text>
+          <Text variant="titleMedium">Room code</Text>
           <Text variant="bodyMedium" style={{ marginTop: 6, opacity: 0.75 }}>
-            Create a room, share the invite, then both people join the same code.
+            Create a room, share the invite, then both people join the same code. A room code is
+            not a password, so do not post it publicly.
           </Text>
 
           <TextInput
@@ -104,8 +105,9 @@ const Cam2Cam = () => {
             {VIDEO_BASE_URL}
           </Text>
           <Text variant="bodySmall" style={{ marginTop: 8, opacity: 0.7 }}>
-            The default opens Jitsi in a secure browser session. For full control, point
-            EXPO_PUBLIC_VIDEO_BASE_URL to your own Jitsi deployment.
+            The default opens Jitsi in a browser session. For production control, point
+            EXPO_PUBLIC_VIDEO_BASE_URL to a Jitsi deployment whose authentication, logging and
+            retention settings you have reviewed.
           </Text>
         </Card.Content>
       </Card>
