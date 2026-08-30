@@ -18,5 +18,5 @@ export const API_BASE_URL = normalizeBaseUrl(extra.apiUrl || "http://localhost:8
 export const VIDEO_BASE_URL = normalizeBaseUrl(extra.videoBaseUrl || "https://meet.jit.si");
 export const SOURCE_REPO = extra.sourceRepo || "https://github.com/azamkassim/alovoa-expo";
 
-export const IS_ALOVOA_PRODUCTION = API_BASE_URL.toLowerCase() === "https://alovoa.com";
+export const IS_ALOVOA_PRODUCTION = /^https:\/\/([a-z0-9-]+\.)?alovoa\.com$/i.test(API_BASE_URL);
 export const IS_LOCAL_BACKEND = /^https?:\/\/(localhost|127\.0\.0\.1|10\.0\.2\.2)(:\d+)?$/i.test(API_BASE_URL);
