@@ -6,8 +6,8 @@ import * as Global from "../Global";
 import * as URL from "../URL";
 import { STATUS_BAR_HEIGHT } from "../assets/styles";
 
-function formatActivityDate(value: Date): string {
-  const date = new Date(value);
+function formatActivityDate(value: Date | string | number): string {
+  const date = value instanceof Date ? value : new Date(value);
   if (Number.isNaN(date.getTime())) return "";
   return date.toLocaleString();
 }
