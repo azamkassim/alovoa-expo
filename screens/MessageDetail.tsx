@@ -4,68 +4,93 @@ import {
   RefreshControl,
   KeyboardAvoidingView,
   Keyboard,
-  Image,
   ScrollView,
   useWindowDimensions,
-  Platform
+  Platform,
 } from "react-native";
+import { Card, IconButton, TextInput, useTheme, Text } from "react-native-paper";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Autolink, { CustomMatcher } from "react-native-autolink";
 import {
-  TextInput, Card, MaterialBottomTabScreenProps
-} from "react-native-paper";
-import { useTheme, Text } from "react-native-paper";
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Autolink, { CustomMatcher } from 'react-native-autolink';
-import { MessageDtoListModel, MessageDto, RootStackParamList } from "../myTypes";
+  MessageDtoListModel,
+  MessageDto,
+  RootStackParamList,
+  YourProfileResource,
+} from "../myTypes";
 import styles from "../assets/styles";
 import * as Global from "../Global";
 import * as URL from "../URL";
 import * as I18N from "../i18n";
+import { StackScreenProps } from "@react-navigation/stack";
+import { createPeerRoom, openVideoRoom } from "../lib/videoCall";
 
-const i18n = I18N.getI18n()
+const i18n = I18N.getI18n();
 const SECOND_MS = 1000;
 const POLL_MESSAGE = 5 * SECOND_MS;
 
-type Props = MaterialBottomTabScreenProps<RootStackParamList, 'MessageDetail'>
-const MessageDetail = ({ route, navigation }: Props) => {
+type Props = StackScreenProps<RootStackParamList, "MessageDetail">;
 
+const MessageDetail = ({ route, navigation }: Props) => {
   const { conversation } = route.params;
   const insets = useSafeAreaInsets();
-
   const { colors } = useTheme();
-  const { height, width } = useWindowDimensions();
-  const [refreshing] = React.useState(false); // todo: setRefreshing
-  const [results, setResults] = React.useState(Array<MessageDto>);
-  let scrollViewRef = React.useRef<ScrollView>(null);
+  const { width } = useWindowDimensions();
+  const [refreshing] = React.useState(false);
+  const [results, setResults] = React.useState<MessageDto[]>([]);
+  const scrollViewRef = React.useRef<ScrollView>(null);
   const [text, setText] = React.useState("");
+  const [videoBusy, setVideoBusy] = React.useState(false);
+  const messageUpdateInterval = React.useRef<ReturnType<typeof setInterval> | null>(null);
 
   const PhoneMatcher: CustomMatcher = {
     pattern:
       /(?<=^|\s|\.)[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{3}[-\s\.]?[0-9]{0,6}(?=$|\s|\.)/gm,
-    type: 'phone-intl',
+    type: "phone-intl",
     getLinkUrl: ([number]) => `tel:${number}`,
   };
 
-  let messageUpdateInterval: NodeJS.Timeout | null = null;
-
-  React.useEffect(() => {
-    const unsubscribe = navigation.addListener('beforeRemove', () => {
-      if (messageUpdateInterval) {
-        clearInterval(messageUpdateInterval);
-      }
-    });
-    return unsubscribe;
-  }, [navigation]);
+  async function startVideoCall() {
+    if (videoBusy) return;
+    setVideoBusy(true);
+    try {
+      const response = await Global.Fetch(URL.API_RESOURCE_YOUR_PROFILE);
+      const data: YourProfileResource = response.data;
+      const room = createPeerRoom(data.user.uuid, conversation.uuid);
+      await openVideoRoom(room);
+    } catch (error) {
+      console.error(error);
+      Global.ShowToast("Unable to start the video call.");
+    } finally {
+      setVideoBusy(false);
+    }
+  }
 
   React.useEffect(() => {
     navigation.setOptions({
-      title: conversation.userName, tabBarIcon: () => (
-        <Image source={{ uri: conversation.userProfilePicture }} style={{ height: 36, width: 36, borderRadius: 36, marginRight: 18 }} />
-      )
+      title: conversation.userName,
+      headerRight: () => (
+        <IconButton
+          icon="video-outline"
+          loading={videoBusy}
+          disabled={videoBusy}
+          onPress={startVideoCall}
+        />
+      ),
     });
+  }, [navigation, conversation.userName, conversation.uuid, videoBusy]);
+
+  React.useEffect(() => {
     load();
-    messageUpdateInterval = setInterval(() => {
+    messageUpdateInterval.current = setInterval(() => {
       reloadMessages(false);
     }, POLL_MESSAGE);
+
+    return () => {
+      if (messageUpdateInterval.current) {
+        clearInterval(messageUpdateInterval.current);
+        messageUpdateInterval.current = null;
+      }
+    };
   }, []);
 
   React.useEffect(() => {
@@ -73,36 +98,53 @@ const MessageDetail = ({ route, navigation }: Props) => {
   }, [results]);
 
   function scrollToEnd() {
-    setTimeout(function () {
-      scrollViewRef?.current?.scrollToEnd();
+    setTimeout(() => {
+      scrollViewRef.current?.scrollToEnd();
     }, 100);
   }
 
   async function load() {
-    reloadMessages(true);
+    await reloadMessages(true);
   }
 
   async function reloadMessages(first: boolean) {
-    let firstVal = first ? "1" : "0";
-    let response = await Global.Fetch(Global.format(URL.API_MESSAGE_UPDATE, conversation.id, firstVal));
-    let data: MessageDtoListModel = response.data;
-    if (data.list) {
-      setResults(data.list);
+    try {
+      const firstVal = first ? "1" : "0";
+      const response = await Global.Fetch(
+        Global.format(URL.API_MESSAGE_UPDATE, conversation.id, firstVal)
+      );
+      const data: MessageDtoListModel = response.data;
+      if (data.list) setResults(data.list);
+    } catch (error) {
+      console.error(error);
     }
   }
 
   async function sendMessage() {
-    const textCopy = text;
+    const textCopy = text.trim();
+    if (!textCopy) return;
+
     setText("");
     Keyboard.dismiss();
-    await Global.Fetch(Global.format(URL.MESSAGE_SEND, conversation.id), 'post', textCopy, 'text/plain');
-    reloadMessages(false);
+    try {
+      await Global.Fetch(
+        Global.format(URL.MESSAGE_SEND, conversation.id),
+        "post",
+        textCopy,
+        "text/plain"
+      );
+      await reloadMessages(false);
+    } catch (error) {
+      console.error(error);
+      Global.ShowToast("Message could not be sent.");
+      setText(textCopy);
+    }
   }
 
   const styleYourChat = {
-    color: 'white',
-    backgroundColor: colors.primary
-  }
+    color: "white",
+    backgroundColor: colors.primary,
+  };
 
   const styleChat = {
     marginLeft: 4,
@@ -111,39 +153,64 @@ const MessageDetail = ({ route, navigation }: Props) => {
     padding: 10,
     borderRadius: 10,
     maxWidth: width * 0.85,
-  }
+  };
 
   return (
-    <View style={[styles.containerMessages, { paddingHorizontal: 0, display: 'flex', marginBottom: insets.bottom }]}>
+    <View
+      style={[
+        styles.containerMessages,
+        { paddingHorizontal: 0, display: "flex", marginBottom: insets.bottom },
+      ]}
+    >
       <ScrollView
         style={{ padding: 8, flex: 1 }}
         ref={scrollViewRef}
         contentContainerStyle={{ paddingBottom: 8 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={load} />}>
-        {
-          results.map((item, index) => (
-            <View key={index} style={[{ flex: 1 }, item.from ? { alignItems: 'flex-start' } : { alignItems: 'flex-end' }]}>
-              <Card style={[styleChat, item.from ? {} : styleYourChat]} >
-                {<Autolink style={[item.from ? {} : styleYourChat]} text={item.content} linkStyle={{ textDecorationLine: 'underline' }} email={false} phone={true} matchers={[PhoneMatcher]} component={Text}></Autolink>}
-              </Card>
-            </View>
-          ))
-        }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={load} />}
+      >
+        {results.map((item) => (
+          <View
+            key={item.id}
+            style={[
+              { flex: 1 },
+              item.from ? { alignItems: "flex-start" } : { alignItems: "flex-end" },
+            ]}
+          >
+            <Card style={[styleChat, item.from ? {} : styleYourChat]}>
+              <Autolink
+                style={item.from ? {} : styleYourChat}
+                text={item.content}
+                linkStyle={{ textDecorationLine: "underline" }}
+                email={false}
+                phone={true}
+                matchers={[PhoneMatcher]}
+                component={Text}
+              />
+            </Card>
+          </View>
+        ))}
       </ScrollView>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"}>
         <TextInput
           style={{ backgroundColor: colors.surface, height: 52 }}
           value={text}
           dense={true}
           maxLength={Global.MAX_MESSAGE_LENGTH}
-          onChangeText={text => setText(text)}
+          onChangeText={setText}
           onSubmitEditing={sendMessage}
-          placeholder={i18n.t('chat.placeholder')}
-          right={<TextInput.Icon color={colors.secondary} onPress={() => sendMessage()} icon="send" />}></TextInput>
+          placeholder={i18n.t("chat.placeholder")}
+          right={
+            <TextInput.Icon
+              color={colors.secondary}
+              onPress={sendMessage}
+              icon="send"
+            />
+          }
+        />
       </KeyboardAvoidingView>
     </View>
-  )
+  );
 };
 
 export default MessageDetail;

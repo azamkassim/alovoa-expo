@@ -1,54 +1,103 @@
-## Overview
+# OpenCircle mobile — working fork
 
-**Alovoa - Expo**
+OpenCircle is the working name for this fork of the Alovoa Expo client. The goal is an open social/matching app where core features are available by design rather than hidden behind coins, VIP tiers, or paid swipe/chat gates.
 
-React Native mobile application for Alovoa.
+This repository does **not** bypass another app's subscription system. It is an independent client foundation built from open-source Alovoa code and intended to run against a backend you control.
 
-<p align="center">
-<img src="https://raw.githubusercontent.com/Alovoa/alovoa-expo/master/fastlane/metadata/android/en-US/images/phoneScreenshots/p1.png" width="480">
-</p>
+## MVP feature set
 
-<p align="center">
-<a href="https://f-droid.org/packages/com.alovoa.expo/"><img style="float:left" src="https://fdroid.gitlab.io/artwork/badge/get-it-on.png" alt="Get it on F-Droid" height="80"></a>
-<a href="https://play.google.com/store/apps/details?id=com.alovoa.expo"><img style="float:left" src="https://play.google.com/intl/en_us/badges/images/generic/en-play-badge.png" alt="Get it on Google Play" height="80"></a>
-</p>
+- **Browse** — grid discovery using the configured backend search API.
+- **Swipe** — the existing Alovoa swipe/match flow.
+- **Social** — activity feed for likes/match notifications from the backend.
+- **Cam2Cam** — shareable video rooms using a configurable Jitsi-compatible URL.
+- **DMs** — existing matched-user chat plus a deterministic video-call button for each conversation.
+- **Me** — profile, photos, prompts, search preferences, verification, block/report and account controls inherited from Alovoa.
+- **No premium gate** — the client contains no coin/VIP requirement around these core features.
 
-### Contribute
+## Important backend rule
 
-- Tell your friends about it and share on social media! This is the best way to make it grow.
-- Improve the project by posting in [Issues](https://github.com/Alovoa/alovoa-expo/issues) and make a PR upon Issue discussion.
-- Translate this project into your preferred language on [Weblate](https://hosted.weblate.org/projects/alovoa-expo/alovoa-expo/)
+The client no longer defaults to `https://alovoa.com`. It defaults to:
 
-## Installation and usage
-
-Be sure, you have installed all dependencies and applications to run Expo project on your computer : [Getting Started with Expo](https://docs.expo.io/get-started/installation/).
-
-### Running the project
-
-Clone this repository :
-
-```bash
-git clone https://github.com/Alovoa/alovoa-expo
-cd alovoa-expo
+```text
+http://localhost:8080
 ```
 
-Install packages :
+Set `EXPO_PUBLIC_API_URL` to the Alovoa-compatible server that you operate. Do not distribute a rebranded build pointed at another project's production service.
+
+## Quick start
 
 ```bash
-yarn
-```
-
-When installation is complete, run it :
-
-```bash
+cp .env.example .env
+# Edit EXPO_PUBLIC_API_URL for your server.
+yarn install --frozen-lockfile
 yarn start
 ```
 
-To create a native Android project:
+For a phone on the same Wi-Fi as your development machine, the API URL normally needs the machine's LAN address, for example:
 
-```bash
-# creates ./android
-./scripts/android.sh
+```text
+EXPO_PUBLIC_API_URL=http://192.168.1.50:8080
 ```
 
-This project is based by this [amazing stevenpersia's repository](https://github.com/stevenpersia/tinder-expo). Feel free to follow this guy because he does great stuff. Any code before my [initial commit](https://github.com/Alovoa/alovoa-expo/commit/5b4acdfbd1f54b46d65ffffb1c8e98fb0eff246a) is [MIT licensed](https://github.com/Alovoa/alovoa-expo/blob/master/LICENSE_old). The main goal of this project is to create native mobile apps for Android and iOS for Alovoa.
+Android emulator users can normally use `http://10.0.2.2:8080` for a backend running on the host machine.
+
+## Android APK
+
+The repository includes a GitHub Actions workflow that prebuilds the Android project and produces a release APK artifact on pull requests. No EAS account is required for that CI path.
+
+Local native build:
+
+```bash
+yarn
+./scripts/android.sh
+cd android
+./gradlew assembleRelease
+```
+
+## Self-host the backend
+
+Alovoa's backend is a separate AGPL-3.0 project. See [`docs/SELF_HOSTING.md`](docs/SELF_HOSTING.md) and [`scripts/bootstrap-backend.sh`](scripts/bootstrap-backend.sh).
+
+The upstream backend requires Java 17, MariaDB, email configuration and encryption/application settings. Docker Compose is also supported upstream.
+
+## Video rooms
+
+The default video provider is:
+
+```text
+https://meet.jit.si
+```
+
+Override it with:
+
+```text
+EXPO_PUBLIC_VIDEO_BASE_URL=https://meet.example.com
+```
+
+For production privacy/control, operate your own compatible Jitsi deployment and review its logging, retention and moderation settings.
+
+## Runtime configuration
+
+See [`.env.example`](.env.example). The most important values are:
+
+- `EXPO_PUBLIC_APP_NAME`
+- `EXPO_PUBLIC_APP_SLUG`
+- `EXPO_PUBLIC_APP_SCHEME`
+- `EXPO_PUBLIC_API_URL`
+- `EXPO_PUBLIC_VIDEO_BASE_URL`
+- `ANDROID_PACKAGE`
+- `IOS_BUNDLE_IDENTIFIER`
+
+## Architecture
+
+See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for boundaries and [`docs/PRIVACY_BASELINE.md`](docs/PRIVACY_BASELINE.md) for the minimum privacy/safety controls expected before public release.
+
+## Remaining backend-dependent enhancements
+
+The current Alovoa API supports matching, profiles and text chat. True cross-user **Stories**, **media/video attachments in DMs**, push-native call signalling and fully in-app WebRTC require server-side additions. Those should be implemented on a backend fork you control rather than simulated only in the client.
+
+## Licensing
+
+This fork keeps the original repository's license files. The mobile code is primarily MPL-2.0, with older portions under the license documented in `LICENSE_old`. Review file-level licensing before redistribution.
+
+The Alovoa backend is a separate AGPL-3.0 project. Its upstream README also notes separate restrictions for some image assets; do not assume all upstream visual branding can be reused in a newly branded public product.
